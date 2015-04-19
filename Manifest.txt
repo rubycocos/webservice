@@ -3,4 +3,7 @@ Manifest.txt
 README.md
 Rakefile
 lib/webservice.rb
+lib/webservice/builder.rb
 lib/webservice/version.rb
+test/helper.rb
+test/test_builder.rb

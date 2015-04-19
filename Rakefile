@@ -18,7 +18,8 @@ Hoe.spec 'webservice' do
   self.history_file = 'HISTORY.md'
 
   self.extra_deps = [
-   ## ['logutils' ]
+    ['logutils' ],
+    ['textutils' ]   # note: use for File.read_utf8
   ]
 
   self.licenses = ['Public Domain']

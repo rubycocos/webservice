@@ -19,7 +19,8 @@ Hoe.spec 'webservice' do
 
   self.extra_deps = [
     ['logutils' ],
-    ['textutils' ]   # note: use for File.read_utf8
+    ['textutils' ],   # note: use for File.read_utf8
+    ['rack']
   ]
 
   self.licenses = ['Public Domain']

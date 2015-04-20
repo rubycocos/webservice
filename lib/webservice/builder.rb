@@ -10,21 +10,22 @@ class Builder
   end
 
   def self.load( code )
-    builder = Builder.new
-    builder.instance_eval( code )
-    builder
+     app_class = Class.new( Base )
+     app_class.instance_eval( code )  ## use class_eval ??
+
+     builder = Builder.new
+     builder.app_class = app_class
+     builder
   end
 
 
   include LogUtils::Logging
 
+  attr_accessor :app_class
+
   def initialize
-    # to be done
   end
 
-  def get( pattern, &block )
-    puts "add route get '#{pattern}'"
-  end
 
 end # class Builder
 

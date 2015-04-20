@@ -27,7 +27,6 @@ get '/cities' do
               title:    city.title,
               code:     city.code,
               pop:      city.pop,
-              popm:     city.popm,
               area:     city.area,
               synonyms: city.synonyms,
               country:  city.country.title }

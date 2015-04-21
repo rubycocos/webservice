@@ -9,5 +9,9 @@ require 'minitest/autorun'
 
 
 ## our own code
-require 'webservice'
+require 'webservice'    ## includes rack
+
+
+## more libs
+require 'rack/test'
 

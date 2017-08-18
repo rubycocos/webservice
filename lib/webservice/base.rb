@@ -99,18 +99,19 @@ private
   end
 
   def handle_response( obj )
-    ### todo/fix: set content type to json
-    ###  call serializer or to_json
+    puts "[Webservice::Base#handle_response]- obj: #{obj.class.name}"
 
-    ## note: dummy for now
-    if obj.is_a?(String)
-      response.write obj
+    ### todo/fix: set content type to json
+
+    if obj.respond_to?( :as_json_v2 )
+      response.write obj.as_json_v2
     else
-      response.write "hello - obj: #{obj.class.name} - to be done"
+      ## just try/use to_json
+      response.write obj.to_json
     end
   end
 
-end # class Base
-  
-end # module Webservice
 
+end # class Base
+
+end # module Webservice

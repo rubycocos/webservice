@@ -24,31 +24,31 @@ class TestApp < MiniTest::Test
   def test_get
     get '/'
     assert last_response.ok?
-    assert_equal 'Hello World', last_response.body
+    assert_equal %q{"Hello World"}, last_response.body
 
     get '/hello/world'
     assert last_response.ok?
-    assert_equal 'Hello world', last_response.body
+    assert_equal %q{"Hello world"}, last_response.body
 
     ##############################
     ## get '/hello/:name'
     get '/hello/ruby'
     assert last_response.ok?
-    assert_equal 'Hello ruby', last_response.body
+    assert_equal %q{"Hello ruby"}, last_response.body
 
     get '/hello/ruby?test=t'   ## try w/ extra query string/params
     assert last_response.ok?
-    assert_equal 'Hello ruby', last_response.body
+    assert_equal %q{"Hello ruby"}, last_response.body
 
     ##################################
     ## get '/:message/:name'
     get '/servus/wien'
     assert last_response.ok?
-    assert_equal 'servus wien', last_response.body
+    assert_equal %q{"servus wien"}, last_response.body
 
     get '/Hallo/Welt'
     assert last_response.ok?
-    assert_equal 'Hallo Welt', last_response.body
+    assert_equal %q{"Hallo Welt"}, last_response.body
   end
 
   def test_halt

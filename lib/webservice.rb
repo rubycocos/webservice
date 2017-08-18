@@ -1,5 +1,10 @@
 # encoding: utf-8
 
+## stdlib
+require 'json'
+require 'pp'
+
+
 # 3rd party gems/libs
 
 require 'logutils'

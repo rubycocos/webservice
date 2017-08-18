@@ -1,13 +1,14 @@
 # encoding: utf-8
 
 
-puts "[debug] eval (top) self = >#{self.class.name}< (#{self.class.object_id})"
+##  gets evaluated in class context (self is class) -- uses class_eval
+puts "[debug] eval (top) self = name:>#{self.name}< object_id:(#{self.object_id})"
 
 get '/hello' do
 
-  puts "[debug] eval (get) self = >#{self.class.name}< (#{self.class.object_id})"
+  ## gets evaluated in object context (self is object) -- uses instance_eval
+  puts "[debug] eval (get /hello) self = name:>#{self.class.name}< object_id:(#{self.class.object_id})"
 
   data = { text: 'hello' }
   data
 end
-

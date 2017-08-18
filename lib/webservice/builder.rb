@@ -11,7 +11,7 @@ class Builder
 
   def self.load( code )
      app_class = Class.new( Base )
-     app_class.instance_eval( code )  ## use class_eval ??
+     app_class.class_eval( code )   ## note: use class_eval (NOT instance_eval)
 
      builder = Builder.new
      builder.app_class = app_class

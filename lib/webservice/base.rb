@@ -99,7 +99,7 @@ private
   end
 
   def handle_response( obj )
-    puts "[Webservice::Base#handle_response]- obj: #{obj.class.name}"
+    puts "[Webservice::Base#handle_response] - obj: #{obj.class.name}"
 
     ### todo/fix: set content type to json
 

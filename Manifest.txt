@@ -6,8 +6,8 @@ lib/webservice.rb
 lib/webservice/base.rb
 lib/webservice/builder.rb
 lib/webservice/version.rb
-test/base/app.rb
-test/base/dyna.rb
 test/helper.rb
+test/service/app.rb
+test/test_app.rb
 test/test_builder.rb
 test/test_builder_debug.rb

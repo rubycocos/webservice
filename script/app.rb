@@ -3,7 +3,7 @@
 
 ###
 #  to run use
-#     ruby -I ./lib -I ./test test/base/app.rb
+#     ruby -I ./lib script/app.rb
 
 
 require 'webservice'

@@ -5,7 +5,7 @@ module Webservice
 class Builder
 
   def self.load_file( path)
-    code = File.read_utf8( path )
+    code = File.open( path, 'r:bom|utf-8' ).read
     self.load( code )
   end
 
@@ -30,4 +30,3 @@ class Builder
 end # class Builder
 
 end # module Webservice
-

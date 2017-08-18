@@ -3,7 +3,6 @@
 # 3rd party gems/libs
 
 require 'logutils'
-require 'textutils'   # note: used for File.read_utf8 for now
 
 require 'rack'
 

@@ -3,7 +3,7 @@
 
 ###
 #  to run use
-#     ruby -I ./lib -I ./test test/base/dyna.rb
+#     ruby -I ./lib  script/dyna.rb
 
 
 require 'webservice'

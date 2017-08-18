@@ -11,22 +11,21 @@ Hoe.spec 'webservice' do
   self.urls    = ['https://github.com/rubylibs/webservice']
 
   self.author  = 'Gerald Bauer'
-  self.email   = 'webslideshow@googlegroups.com'
+  self.email   = 'ruby-talk@ruby-lang.org'
 
   # switch extension to .markdown for gihub formatting
   self.readme_file  = 'README.md'
   self.history_file = 'HISTORY.md'
 
   self.extra_deps = [
-    ['logutils' ],
-    ['textutils' ],   # note: use for File.read_utf8
-    ['rack']
+    ['logutils'],
+    ['rack', '>=2.0.3']
   ]
 
   self.licenses = ['Public Domain']
 
   self.spec_extras = {
-   required_ruby_version: '>= 1.9.2'
+   required_ruby_version: '>= 2.3'
   }
 
 

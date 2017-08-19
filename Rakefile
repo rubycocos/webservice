@@ -19,7 +19,8 @@ Hoe.spec 'webservice' do
 
   self.extra_deps = [
     ['logutils'],
-    ['rack', '>=2.0.3']
+    ['mustermann', '>=2.0.0'],
+    ['rack',       '>=2.0.3']
   ]
 
   self.licenses = ['Public Domain']
@@ -27,6 +28,5 @@ Hoe.spec 'webservice' do
   self.spec_extras = {
    required_ruby_version: '>= 2.3'
   }
-
 
 end

@@ -9,7 +9,12 @@ require 'pp'
 
 require 'logutils'
 
+require 'mustermann'
+require 'mustermann/version'
+require 'mustermann/sinatra'
+
 require 'rack'
+
 
 # our own code
 require 'webservice/version'   # note: let version always go first

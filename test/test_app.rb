@@ -51,6 +51,22 @@ class TestApp < MiniTest::Test
     assert_equal %q{"Hallo Welt"}, last_response.body
   end
 
+
+  def test_format
+    get '/key.format'
+    assert last_response.ok?
+    assert_equal %q{"key format"}, last_response.body
+
+    get '/ottakringer.csv'
+    assert last_response.ok?
+    assert_equal %q{"ottakringer csv"}, last_response.body
+
+    get '/ottakringer'
+    assert last_response.ok?
+    assert_equal %q{"ottakringer "}, last_response.body
+  end
+
+
   def test_halt
     ## get '/halt/404'
     get '/halt/404'

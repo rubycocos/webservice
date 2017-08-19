@@ -14,7 +14,9 @@ class Base
     HTTP_VERBS.each do |method|
       define_method( method.downcase ) do |pattern, &block|
         puts "[debug] Webservice::Base.#{method.downcase} - add route #{method} '#{pattern}' to #<#{self.name}:#{self.object_id}> : #{self.class.name}"
-        routes[method] << [compile_pattern(pattern), block]
+
+        ## note: for now use the sintatra-style patterns (with mustermann)
+        routes[method] << [Mustermann::Sinatra.new(pattern), block]
       end
     end
 
@@ -34,17 +36,6 @@ class Base
       end
     end
 
-
-  private
-
-    def compile_pattern( pattern )
-      keys = []
-      pattern.gsub!( /(:\w+)/ ) do |match|
-        keys << $1[1..-1]
-        '([^/?#]+)'
-      end
-      [%r{^#{pattern}$}, keys]
-    end
   end  ## class << self
 
 
@@ -81,11 +72,13 @@ private
 
   def route_eval
     catch(:halt) do
-      self.class.routes[request.request_method].each do |matcher, block|
-        if match = request.path_info.match( matcher[0] )
-          if (captures = match.captures) && !captures.empty?
-            url_params = Hash[*matcher[1].zip(captures).flatten]
-            @params = url_params.merge(params)
+      self.class.routes[request.request_method].each do |pattern, block|
+        ## puts "trying matching route >#{request.path_info}<..."
+        url_params = pattern.params( request.path_info )
+        if url_params   ## note: params returns nil if no match
+          ## puts "  BINGO! url_params: #{url_params.inspect}"
+          if !url_params.empty?   ## url_params hash NOT empty (e.g. {}) merge with req params
+            @params = url_params.merge( params )
           end
           handle_response( instance_eval( &block ))
           return
@@ -94,6 +87,7 @@ private
       halt 404
     end
   end
+
 
   def handle_response( obj )
     puts "[Webservice::Base#handle_response] - obj : #{obj.class.name}"

@@ -19,7 +19,7 @@ Hoe.spec 'webservice' do
 
   self.extra_deps = [
     ['logutils'],
-    ['mustermann', '>=2.0.0'],
+    ['mustermann', '>=1.0.0'],
     ['rack',       '>=2.0.3']
   ]
 

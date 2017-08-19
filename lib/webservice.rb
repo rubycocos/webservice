@@ -13,9 +13,22 @@ require 'rack'
 
 # our own code
 require 'webservice/version'   # note: let version always go first
-require 'webservice/builder'
 require 'webservice/base'
 
+
+
+module Webservice
+  def self.load_file( path )
+    code = File.open( path, 'r:bom|utf-8' ).read
+    self.load( code )
+  end
+
+  def self.load( code )
+    app_class = Class.new( Base )     ## create new app_class or just use Base itself - why? why not?
+    app_class.class_eval( code )   ## note: use class_eval (NOT instance_eval)
+    app_class
+  end
+end # module Webservice
 
 
 # say hello

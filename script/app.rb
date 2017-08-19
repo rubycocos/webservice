@@ -29,9 +29,9 @@ class App < Webservice::Base
   end
 
   get '/:message/:name' do
-    @message = params['message']
-    @name    = params['name']
-    "#{@message} #{@name}"
+    message = params['message']
+    name    = params['name']
+    "#{message} #{name}"
   end
 
   get '/halt/404' do

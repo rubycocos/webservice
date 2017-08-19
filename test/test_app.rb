@@ -15,9 +15,9 @@ class TestApp < MiniTest::Test
   def app
     ## return (rack-ready) app object
     @@app ||= begin
-      builder = Webservice::Builder.load_file( "#{Webservice.root}/test/service/app.rb" )
-      pp builder.app_class.routes
-      builder.app_class.new
+      app_class = Webservice.load_file( "#{Webservice.root}/test/service/app.rb" )
+      pp app_class.routes
+      app_class.new
     end
   end
 

@@ -9,15 +9,15 @@
 require 'webservice'
 
 
-builder = Webservice::Builder.load_file( "#{Webservice.root}/examples/debug.rb" )
+App = Webservice.load_file( "#{Webservice.root}/samples/debug.rb" )
 
 
 #############
 # for testing startup server
 
 puts "dump routes:"
-pp builder.app_class.routes
+pp App.routes
 
 puts "starting server..."
-builder.app_class.run!
+App.run!
 puts "bye"

@@ -4,31 +4,30 @@
 module Webservice
 
 class Base
+
+  HTTP_VERBS = %w(GET POST PATCH PUT DELETE HEAD OPTIONS)
+
+
   class << self
 
     ## todo/check: all verbs needed! (supported) - why, why not??
-    %w(GET POST PATCH PUT DELETE HEAD OPTIONS).each do |method|
+    HTTP_VERBS.each do |method|
       define_method( method.downcase ) do |pattern, &block|
-        puts "[debug] Webservice::Base.#{method.downcase} - add route #{method} '#{pattern}' to >#{self.name}< (#{self.object_id})"
+        puts "[debug] Webservice::Base.#{method.downcase} - add route #{method} '#{pattern}' to #<#{self.name}:#{self.object_id}> : #{self.class.name}"
         routes[method] << [compile_pattern(pattern), block]
       end
     end
 
-##    def builder
-##      @builder ||= Rack::Builder.new
-##    end
 
     def routes
       @routes ||= Hash.new { |hash, key| hash[key]=[] }
     end
 
 
+    ## convenience method
     def run!
-      app_class = self  ## note: self will be derived class (e.g. App and not Base)
-      puts "[debug] Webservice::Base.run! - self: >#{app_class.name}< (#{app_class.object_id}) : #{app_class.class.name}"  # assume self is class
-      app_obj = app_class.new
-      app = Rack::Builder.new
-      app.map( '/' ) { run app_obj }  ## e.g. run App
+      puts "[debug] Webservice::Base.run! - self = #<#{self.name}:#{self.object_id}> : #{self.class.name}"  # note: assumes self is class
+      app    = self.new   ## note: use self; will be derived class (e.g. App and not Base)
       port   = 4567
       Rack::Handler.get('webrick').run( app, Port:port ) do |server|
         ## todo: add traps here - why, why not??
@@ -46,7 +45,8 @@ class Base
       end
       [%r{^#{pattern}$}, keys]
     end
-  end
+  end  ## class << self
+
 
 
   attr_reader :request
@@ -68,9 +68,6 @@ class Base
     @response.finish
   end
 
-  def session
-    request.env["rack.session"] || raise("Rack::Session handler is missing")
-  end
 
   def halt( *args )
     response.status = args.detect{|arg| arg.is_a?(Fixnum) } || 200
@@ -99,7 +96,7 @@ private
   end
 
   def handle_response( obj )
-    puts "[Webservice::Base#handle_response] - obj: #{obj.class.name}"
+    puts "[Webservice::Base#handle_response] - obj : #{obj.class.name}"
 
     ### todo/fix: set content type to json
 

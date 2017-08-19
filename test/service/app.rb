@@ -8,9 +8,9 @@ get '/hello/:name' do
 end
 
 get '/:message/:name' do
-  @message = params['message']
-  @name    = params['name']
-  "#{@message} #{@name}"
+  message = params['message']
+  name    = params['name']
+  "#{message} #{name}"
 end
 
 get '/halt/404' do
@@ -22,4 +22,3 @@ get '/halt_error' do
   halt 500, "Error fatal"  # 500 - internal server error
   ## todo: check why log reports 200-OK (for status code)!!
 end
-

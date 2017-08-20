@@ -2,6 +2,7 @@
 
 ## stdlib
 require 'json'
+require 'csv'
 require 'pp'
 
 

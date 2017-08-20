@@ -22,6 +22,14 @@ get '/halt_error' do
 end
 
 
+get '/countries(.:format)?' do
+  ## array of hash records
+   [ { key: 'at', name: 'Austria' },
+     { key: 'mx', name: 'Mexico'  } ]
+end
+
+
+
 get '/:message/:name' do
   message = params['message']
   name    = params['name']

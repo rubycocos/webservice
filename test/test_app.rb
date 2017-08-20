@@ -57,14 +57,42 @@ class TestApp < MiniTest::Test
     assert last_response.ok?
     assert_equal %q{"key format"}, last_response.body
 
-    get '/ottakringer.csv'
+    get '/ottakringer.xxx'
     assert last_response.ok?
-    assert_equal %q{"ottakringer csv"}, last_response.body
+    assert_equal %q{"ottakringer xxx"}, last_response.body
 
     get '/ottakringer'
     assert last_response.ok?
     assert_equal %q{"ottakringer "}, last_response.body
   end
+
+
+  def test_countries
+
+    get '/countries.csv'
+    assert last_response.ok?
+    assert_equal <<CSV, last_response.body
+at,Austria
+mx,Mexico
+CSV
+
+    get '/countries.html'
+    assert last_response.ok?
+    assert_equal <<HTML, last_response.body
+<table>
+  <tr><td>at</td><td>Austria</td></tr>
+  <tr><td>mx</td><td>Mexico</td></tr>
+</table>
+HTML
+
+   get '/countries.json'
+   assert last_response.ok?
+   assert_equal %q<[{"key":"at","name":"Austria"},{"key":"mx","name":"Mexico"}]>, last_response.body
+
+   get '/countries'
+   assert last_response.ok?
+   assert_equal %q<[{"key":"at","name":"Austria"},{"key":"mx","name":"Mexico"}]>, last_response.body
+  end  # method test_countries
 
 
   def test_halt

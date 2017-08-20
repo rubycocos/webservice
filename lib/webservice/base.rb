@@ -106,7 +106,7 @@ class Base
       puts "[debug] Webservice::Base.run! - self = #<#{self.name}:#{self.object_id}> : #{self.class.name}"  # note: assumes self is class
       app    = self.new   ## note: use self; will be derived class (e.g. App and not Base)
       port   = 4567
-      Rack::Handler.get('webrick').run( app, Port:port ) do |server|
+      Rack::Handler::WEBrick.run( app, Port:port ) do |server|
         ## todo: add traps here - why, why not??
       end
     end

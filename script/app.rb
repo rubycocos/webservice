@@ -88,6 +88,34 @@ end
 puts "dump routes:"
 pp App.routes
 
+builder = Rack::Builder.new do
+
+  map "/rack" do
+    run lambda { |env| pp env;
+                        [200,
+                         {"Content-Type" => "text/html"},
+                         ["REQUEST_PATH: #{env['REQUEST_PATH']}, PATH_INFO: #{env['PATH_INFO']}"]
+                        ]
+               }
+  end
+
+  map "/mini" do
+    run MiniApp.new
+  end
+
+## note: URLMap will NOT match first-come-first-serve
+##   URLMap will try to match longest map path first (e.g. match path sorted by length, longest first)
+  run App.new
+end
+
+
 puts "starting server..."
-App.run!
+## App.run!
+
+port = 4567
+app  = builder.to_app
+pp app.class.name    #=> Rack::URLMap
+
+Rack::Handler::WEBrick.run app, Port: 4567
+
 puts "bye"

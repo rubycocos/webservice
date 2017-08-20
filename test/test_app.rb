@@ -96,14 +96,11 @@ HTML
 
 
   def test_halt
-    ## get '/halt/404'
     get '/halt/404'
+    assert_equal 404, last_response.status
 
-    ## get '/halt_error'   - 500, "Error fatal"  # 500 - internal server error
-    get '/halt_error'
-
-    ## todo: check error codes
-    assert true
+    get '/halt_error'   ##  500, "Error fatal"  # 500 - internal server error
+    assert_equal 500, last_response.status
   end
 
 end # class TestApp

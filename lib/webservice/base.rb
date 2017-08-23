@@ -3,6 +3,21 @@
 
 module Webservice
 
+  ## use (an reuse from Rack) some freezed string constants
+  ##  HTTP verbs
+  GET     = Rack::GET
+  POST    = Rack::POST
+  PATCH   = Rack::PATCH
+  PUT     = Rack::PUT
+  DELETE  = Rack::DELETE
+  HEAD    = Rack::HEAD
+  OPTIONS = Rack::OPTIONS
+
+  ##  HTTP headers
+  CONTENT_LENGTH = Rack::CONTENT_LENGTH
+  CONTENT_TYPE   = Rack::CONTENT_TYPE
+  LOCACTION      = 'Location'.freeze      # not available from Rack
+
 
 module Helpers
     ## add some more helpers
@@ -36,18 +51,18 @@ module Helpers
 
     ## (simple) content_type helper - all "hard-coded" for now; always uses utf-8 too
     def content_type( type=nil )
-      return response['Content-Type'] unless type
+      return response[ CONTENT_TYPE ] unless type
 
       if type.to_sym == :json
-        response['Content-Type'] = 'application/json; charset=utf-8'
+        response[ CONTENT_TYPE ] = 'application/json; charset=utf-8'
       elsif type.to_sym == :js || type.to_sym == :javascript
-        response['Content-Type'] = 'application/javascript; charset=utf-8'
+        response[ CONTENT_TYPE ] = 'application/javascript; charset=utf-8'
         ## use 'text/javascript; charset=utf-8'  -- why? why not??
         ## note: ietf recommends application/javascript
       elsif type.to_sym == :csv || type.to_sym == :text || type.to_sym == :txt
-        response['Content-Type'] = 'text/plain; charset=utf-8'
+        response[ CONTENT_TYPE ] = 'text/plain; charset=utf-8'
       elsif type.to_sym == :html || type.to_sym == :htm
-        response['Content-Type'] = 'text/html; charset=utf-8'
+        response[ CONTENT_TYPE ] = 'text/html; charset=utf-8'
       else
         ### unknown type; do nothing - sorry; issue warning - why? why not??
       end
@@ -58,6 +73,7 @@ end  ## module Helpers
 class Base
   include Helpers
 
+
   class << self
 
     ## todo/check: all verbs needed! (supported) - why, why not??
@@ -66,16 +82,16 @@ class Base
     # Note: for now defining a `GET` handler also automatically defines
     # a `HEAD` handler  (follows sinatra convention)
     def get( pattern, &block)
-      route( 'GET',   pattern, &block )
-      route( 'HEAD',  pattern, &block )
+      route( GET,   pattern, &block )
+      route( HEAD,  pattern, &block )
     end
 
-    def post( pattern, &block)    route( 'POST',    pattern, &block ); end
-    def patch( pattern, &block)   route( 'PATCH',   pattern, &block ); end
-    def put( pattern, &block)     route( 'PUT',     pattern, &block ); end
-    def delete( pattern, &block)  route( 'DELETE',  pattern, &block ); end
-    def head( pattern, &block)    route( 'HEAD',    pattern, &block ); end
-    def options( pattern, &block) route( 'OPTIONS', pattern, &block ); end
+    def post( pattern, &block)    route( POST,    pattern, &block ); end
+    def patch( pattern, &block)   route( PATCH,   pattern, &block ); end
+    def put( pattern, &block)     route( PUT,     pattern, &block ); end
+    def delete( pattern, &block)  route( DELETE,  pattern, &block ); end
+    def head( pattern, &block)    route( HEAD,    pattern, &block ); end
+    def options( pattern, &block) route( OPTIONS, pattern, &block ); end
 
     def route( method, pattern, &block )
       puts "[debug] Webservice::Base.#{method.downcase} - add route #{method} '#{pattern}' to #<#{self.name}:#{self.object_id}> : #{self.class.name}"

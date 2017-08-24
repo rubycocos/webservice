@@ -100,7 +100,8 @@ HTML
     assert_equal 404, last_response.status
 
     get '/halt_error'   ##  500, "Error fatal"  # 500 - internal server error
-    assert_equal 500, last_response.status
+    assert_equal 500,               last_response.status
+    assert_equal "Error fatal", last_response.body
   end
 
 end # class TestApp

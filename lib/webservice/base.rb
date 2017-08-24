@@ -16,7 +16,8 @@ module Webservice
   ##  HTTP headers
   CONTENT_LENGTH = Rack::CONTENT_LENGTH
   CONTENT_TYPE   = Rack::CONTENT_TYPE
-  LOCACTION      = 'Location'.freeze      # not available from Rack
+
+  LOCATION      = 'Location'.freeze      # not available from Rack
 
 
 module Helpers
@@ -24,25 +25,28 @@ module Helpers
     ##   "inspired" by sinatra (mostly) - for staying compatible
     ##   see https://github.com/sinatra/sinatra/blob/master/lib/sinatra/base.rb
 
-    ## todo -- add redirect/redirect_to
-    ##         add status -- why? why not??
+    ## todo -- add status -- why? why not??
 
     # Halt processing and return the error status provided.
-    def error(code, body=nil)
-      code = 500
-      body = code.to_str if code.respond_to? :to_str
-
+    def error( code, body=nil )
       response.body = body unless body.nil?
       halt code
     end
 
     # Halt processing and return a 404 Not Found.
-    def not_found(body=nil)
+    def not_found( body=nil )
       error 404, body
     end
 
+
+    def redirect_to( uri, status=302 )    ## Note: 302 == Found, 301 == Moved Permanently
+      halt status, { LOCATION => uri }
+    end
+    alias_method :redirect, :redirect_to
+
+
     # Set multiple response headers with Hash.
-    def headers(hash=nil)
+    def headers( hash=nil )
       response.headers.merge! hash if hash
       response.headers
     end
@@ -81,7 +85,7 @@ class Base
 
     # Note: for now defining a `GET` handler also automatically defines
     # a `HEAD` handler  (follows sinatra convention)
-    def get( pattern, &block)
+    def get( pattern, &block )
       route( GET,   pattern, &block )
       route( HEAD,  pattern, &block )
     end
@@ -109,7 +113,7 @@ class Base
     def environment
       ## include APP_ENV why? why not?
       ##   todo -- cache value? why why not?  (see/follow sinatara set machinery ??)
-      (ENV['RACK_ENV'] || :development).to_sym
+      (ENV['APP_ENV'] || ENV['RACK_ENV'] || :development).to_sym
     end
 
     def development?() environment == :development; end
@@ -135,25 +139,35 @@ class Base
   attr_reader :params
   attr_reader :env
 
-  def call(env)
-    dup.call!(env)
+  def call( env )
+    dup.call!( env )
   end
 
-  def call!(env)
+  def call!( env )
     env['PATH_INFO'] = '/'  if env['PATH_INFO'].empty?
-    @request   = Rack::Request.new(env)
+
+    @request   = Rack::Request.new( env )
     @response  = Rack::Response.new
     @params    = request.params
     @env       = env
+
+
+    ## (auto-)add (merge in) cors headers
+    ##   todo: move into a before filter ??  lets you overwrite headers - needed - why? why not??
+    headers 'Access-Control-Allow-Origin'  => '*',
+            'Access-Control-Allow-Headers' => 'Authorization,Accepts,Content-Type,X-CSRF-Token,X-Requested-With',
+            'Access-Control-Allow-Methods' => 'GET,POST,PUT,DELETE,OPTIONS'
+
     route_eval
+
     @response.finish
   end
 
 
   def halt( *args )
-    response.status = args.detect{|arg| arg.is_a?(Fixnum) } || 200
-    response.header.merge!(args.detect{|arg| arg.is_a?(Hash) } || {})
-    response.body = [args.detect{|arg| arg.is_a?(String) } || '']
+    response.status = args.detect{ |arg| arg.is_a?(Fixnum) } || 200
+    response.header.merge!( args.detect{ |arg| arg.is_a?(Hash) } || {} )
+    response.body = [args.detect{ |arg| arg.is_a?(String) } || '']
     throw :halt, response
   end
 
@@ -161,19 +175,21 @@ private
 
   def route_eval
     catch(:halt) do
-      self.class.routes[request.request_method].each do |pattern, block|
+      routes = self.class.routes[ request.request_method ]
+      routes.each do |pattern, block|
         ## puts "trying matching route >#{request.path_info}<..."
         url_params = pattern.params( request.path_info )
         if url_params   ## note: params returns nil if no match
           ## puts "  BINGO! url_params: #{url_params.inspect}"
           if !url_params.empty?   ## url_params hash NOT empty (e.g. {}) merge with req params
             ## todo/fix: check merge order - params overwrites url_params - why? why not??
-            @params = url_params.merge( params )
+            @params = url_params.merge( @params )
           end
           handle_response( instance_eval( &block ))
           return
         end
       end
+      # no match found for route/request
       halt 404
     end
   end
@@ -188,14 +204,16 @@ private
     ## "magic" param format; default to json
     format = params['format'] || 'json'
 
+
+    ## note: response.body must be (expects) an array!!!
+    ##   thus, [json] etc.
+
     if format == 'csv' || format == 'txt'
-      text = generate_csv( obj )
       content_type :text
-      response.write text
+      response.body = [generate_csv( generate_tabular_data( obj ))]
     elsif format == 'html' || format == 'htm'
-      text = generate_html_table( obj )
       content_type :html
-      response.write text
+      response.body = [generate_html_table( generate_tabular_data (obj ))]
     else
       json = generate_json( obj )
 
@@ -203,13 +221,14 @@ private
 
       if callback
         content_type :js
-        response.write "#{callback}(#{json})"
+        response.body = ["#{callback}(#{json})"]
       else
         content_type :json
-        response.write json
+        response.body = [json]
       end
     end
   end  # method handle_response
+
 
 
   def generate_csv( recs )
@@ -259,11 +278,30 @@ private
   end
 
 
+  ##########################################
+  ## auto-generate/convert "magic"
+
+  def generate_tabular_data( obj )
+    ##  for now allow
+    ##    to_t, to_tab, to_tabular  - others too? why? why not?
+    if obj.respond_to? :to_t
+      obj.to_t
+    elsif obj.respond_to? :to_tab
+      obj.to_tab
+    elsif obj.respond_to? :to_tabular
+      obj.to_tabular
+    else
+      obj   ## use as is (assumes array of hashesd)
+    end
+  end
+
   def generate_json( obj )
-    if obj.respond_to? :as_json_v2     ## try (our own) serializer first
+    if obj.respond_to? :as_json_v3     ## try (our own) serializer first
+      obj.as_json_v3
+    elsif obj.respond_to? :as_json_v2     ## try (our own) serializer first
       obj.as_json_v2
     elsif obj.respond_to? :as_json     ## try (activerecord) serializer
-      obj.as_json_v2
+      obj.as_json
     else
       ## just try/use to_json
       obj.to_json

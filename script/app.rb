@@ -100,12 +100,12 @@ builder = Rack::Builder.new do
   end
 
   map "/mini" do
-    run MiniApp.new
+    run MiniApp
   end
 
 ## note: URLMap will NOT match first-come-first-serve
 ##   URLMap will try to match longest map path first (e.g. match path sorted by length, longest first)
-  run App.new
+  run App
 end
 
 

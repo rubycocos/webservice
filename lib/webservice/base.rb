@@ -80,6 +80,19 @@ class Base
 
   class << self
 
+    def call( env )    ## note self.call(env) lets you use =>  run Base instead of run Base.new
+      ## puts "calling #{self.name}.call"
+      prototype.call( env )
+    end
+
+    def prototype
+      ## puts "calling #{self.name}.prototype"
+      @prototype ||= self.new
+      ## pp @prototype
+      ## @prototype
+    end
+
+
     ## todo/check: all verbs needed! (supported) - why, why not??
     ##   e.g. add LINK, UNLINK ??
 
@@ -124,7 +137,7 @@ class Base
     ## convenience method
     def run!
       puts "[debug] Webservice::Base.run! - self = #<#{self.name}:#{self.object_id}> : #{self.class.name}"  # note: assumes self is class
-      app    = self.new   ## note: use self; will be derived class (e.g. App and not Base)
+      app    = self     ## note: use self; will be derived class (e.g. App and not Base)
       port   = 4567
       Rack::Handler::WEBrick.run( app, Port:port ) do |server|
         ## todo: add traps here - why, why not??
@@ -196,35 +209,71 @@ private
 
 
 
-
-  def handle_response( obj )
+  ## todo: add as_json like opts={}  why? why not?
+  def handle_response( obj, opts={} )
     puts "[Webservice::Base#handle_response (#{request.path_info}) params: #{params.inspect}] - obj : #{obj.class.name}"
     pp obj
 
     ## "magic" param format; default to json
     format = params['format'] || 'json'
 
-
     ## note: response.body must be (expects) an array!!!
     ##   thus, [json] etc.
 
-    if format == 'csv' || format == 'txt'
-      content_type :text
-      response.body = [generate_csv( generate_tabular_data( obj ))]
-    elsif format == 'html' || format == 'htm'
-      content_type :html
-      response.body = [generate_html_table( generate_tabular_data (obj ))]
-    else
-      json = generate_json( obj )
+    if format == 'csv'  || format == 'txt' ||
+       format == 'html' || format == 'htm'
 
-      callback = params.delete('callback')
+      data = as_tabular( obj )
 
-      if callback
-        content_type :js
-        response.body = ["#{callback}(#{json})"]
+      ## note: array required!!!
+      #   array   => multiple records (array of hashes)
+      if data.is_a?( Array )
+        if format == 'csv'  || format == 'txt'
+           content_type :txt   ## use csv content type - why? why not??
+           response.body = [generate_csv( data )]
+        else
+          ## asume html
+          content_type :html
+          response.body = [generate_html_table( data )]
+        end
       else
-        content_type :json
-        response.body = [json]
+        ## wrong format (expect array of hashes)
+        ##   todo: issue warning/notice about wrong format - how?
+        ##   use different http status code - why? why not??
+        content_type :txt
+        ##  todo/check: use just data.to_s  for all - why? why not?
+        ## for now return as is (convert to string with to_s or inspect)
+        response.body = [data.is_a?( String ) ? data.to_s : data.inspect]
+      end
+    else
+      data = as_json( obj )
+
+      ## note: hash or array required!!! for now for json generation
+      #   hash   => single record
+      #   array  => multiple records (that is, array of hashes)
+
+      if data.is_a?( Hash ) || data.is_a?( Array )
+        json = JSON.pretty_generate( data )   ## use pretty printer
+
+        callback = params.delete( 'callback' )
+
+        if callback
+          content_type :js
+          response.body = ["#{callback}(#{json})"]
+        else
+          content_type :json
+          response.body = [json]
+        end
+      else
+         ## todo/fix/check: change http status to unprocessable entity
+         ##   or something --  why ??? why not??
+         ##
+         ##  allow "standalone" number, nils, strings - why? why not?
+         ##   for now valid json must be wrapped in array [] or hash {}
+         content_type :txt
+         ##  todo/check: use just data.to_s  for all - why? why not?
+         ## for now return as is (convert to string with to_s or inspect)
+         response.body = [data.is_a?( String ) ? data.to_s : data.inspect]
       end
     end
   end  # method handle_response
@@ -281,21 +330,27 @@ private
   ##########################################
   ## auto-generate/convert "magic"
 
-  def generate_tabular_data( obj )
+  def as_tabular( obj, opts={} )
     ##  for now allow
-    ##    to_t, to_tab, to_tabular  - others too? why? why not?
-    if obj.respond_to? :to_t
-      obj.to_t
-    elsif obj.respond_to? :to_tab
-      obj.to_tab
-    elsif obj.respond_to? :to_tabular
-      obj.to_tabular
+    ##    as_tab, as_tabular  - others too? e.g. as_table why? why not?
+    ##   like as_json will return a hash or array of hashes NOT a string!!!!
+
+    if obj.respond_to? :as_tab
+      obj.as_tab
+    elsif obj.respond_to? :as_tabular
+      obj.as_tabular
     else
-      obj   ## use as is (assumes array of hashesd)
+      ## note: use as_json will return hash (for record) or array of hashes (for records)
+      if obj.respond_to? :as_json
+        obj.as_json
+      else
+        obj   ## just try/use as is (assumes array of hashesd)
+      end
     end
   end
 
-  def generate_json( obj )
+
+  def as_json( obj, opts={} )
     if obj.respond_to? :as_json_v3     ## try (our own) serializer first
       obj.as_json_v3
     elsif obj.respond_to? :as_json_v2     ## try (our own) serializer first
@@ -303,8 +358,7 @@ private
     elsif obj.respond_to? :as_json     ## try (activerecord) serializer
       obj.as_json
     else
-      ## just try/use to_json
-      obj.to_json
+      obj   ## just try/use as is
     end
   end
 

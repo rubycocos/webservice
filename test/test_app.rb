@@ -24,46 +24,46 @@ class TestApp < MiniTest::Test
   def test_get
     get '/'
     assert last_response.ok?
-    assert_equal %q{"Hello World"}, last_response.body
+    assert_equal "Hello World", last_response.body
 
     get '/hello/world'
     assert last_response.ok?
-    assert_equal %q{"Hello world"}, last_response.body
+    assert_equal "Hello world", last_response.body
 
     ##############################
     ## get '/hello/:name'
     get '/hello/ruby'
     assert last_response.ok?
-    assert_equal %q{"Hello ruby"}, last_response.body
+    assert_equal "Hello ruby", last_response.body
 
     get '/hello/ruby?test=t'   ## try w/ extra query string/params
     assert last_response.ok?
-    assert_equal %q{"Hello ruby"}, last_response.body
+    assert_equal "Hello ruby", last_response.body
 
     ##################################
     ## get '/:message/:name'
     get '/servus/wien'
     assert last_response.ok?
-    assert_equal %q{"servus wien"}, last_response.body
+    assert_equal "servus wien", last_response.body
 
     get '/Hallo/Welt'
     assert last_response.ok?
-    assert_equal %q{"Hallo Welt"}, last_response.body
+    assert_equal "Hallo Welt", last_response.body
   end
 
 
   def test_format
     get '/key.format'
     assert last_response.ok?
-    assert_equal %q{"key format"}, last_response.body
+    assert_equal "key format", last_response.body
 
     get '/ottakringer.xxx'
     assert last_response.ok?
-    assert_equal %q{"ottakringer xxx"}, last_response.body
+    assert_equal "ottakringer xxx", last_response.body
 
     get '/ottakringer'
     assert last_response.ok?
-    assert_equal %q{"ottakringer "}, last_response.body
+    assert_equal "ottakringer ", last_response.body
   end
 
 
@@ -85,14 +85,29 @@ CSV
 </table>
 HTML
 
+
+countries_json = <<JSON.strip
+[
+  {
+    "key": "at",
+    "name": "Austria"
+  },
+  {
+    "key": "mx",
+    "name": "Mexico"
+  }
+]
+JSON
+
    get '/countries.json'
    assert last_response.ok?
-   assert_equal %q<[{"key":"at","name":"Austria"},{"key":"mx","name":"Mexico"}]>, last_response.body
+   assert_equal countries_json, last_response.body
 
    get '/countries'
    assert last_response.ok?
-   assert_equal %q<[{"key":"at","name":"Austria"},{"key":"mx","name":"Mexico"}]>, last_response.body
+   assert_equal countries_json, last_response.body
   end  # method test_countries
+
 
 
   def test_halt

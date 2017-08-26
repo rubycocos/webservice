@@ -1,10 +1,16 @@
 # encoding: utf-8
 
 module Webservice
-  MAJOR = 0    ## todo: namespace inside version or something - why? why not??
-  MINOR = 4
-  PATCH = 0
-  VERSION = [MAJOR,MINOR,PATCH].join('.')
+
+   module Version
+     MAJOR = 0    ## todo: namespace inside version or something - why? why not??
+     MINOR = 5
+     PATCH = 0    ## note: if not put in module will overwrite PATCH (HTTP Verb Constant)!!!
+   end
+
+   VERSION = [Version::MAJOR,
+              Version::MINOR,
+              Version::PATCH].join('.')
 
   def self.version
     VERSION

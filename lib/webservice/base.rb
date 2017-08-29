@@ -16,8 +16,9 @@ module Webservice
   ##  HTTP headers
   CONTENT_LENGTH = Rack::CONTENT_LENGTH
   CONTENT_TYPE   = Rack::CONTENT_TYPE
-
-  LOCATION      = 'Location'.freeze      # not available from Rack
+  # -- more HTTP headers - not available from Rack
+  LOCATION       = 'Location'.freeze
+  LAST_MODIFIED  = 'Last-Modified'.freeze
 
 
 module Helpers
@@ -71,6 +72,56 @@ module Helpers
         ### unknown type; do nothing - sorry; issue warning - why? why not??
       end
     end  ## method content_type
+
+
+  ## simple send file (e.g. for images/binary blobs, etc.) helper
+  def send_file( path )
+    ## puts "send_file path=>#{path}<"
+
+    ## puts "HTTP_IF_MODIFIED_SINCE:"
+    ## puts request.get_header('HTTP_IF_MODIFIED_SINCE')
+
+    last_modified = File.mtime(path).httpdate
+    ## puts "last_modified:"
+    ## puts last_modified
+
+    ## HTTP 304 => Not Modified
+    halt 304     if request.get_header('HTTP_IF_MODIFIED_SINCE') == last_modified
+
+    headers[ LAST_MODIFIED ] = last_modified
+
+    bytes = File.open( path, 'rb' ) { |f| f.read }
+
+    ## puts "encoding:"
+    ## puts bytes.encoding
+
+    ## puts "size:"
+    ## puts bytes.size
+
+    extname = File.extname( path )
+    ## puts "extname:"
+    ## puts extname
+
+    ## puts "headers (before):"
+    ## pp headers
+
+    if extname == '.png'
+      headers[ CONTENT_TYPE ] = 'image/png'
+    else
+      ## fallback to application/octet-stream
+      headers[ CONTENT_TYPE ] = 'application/octet-stream'
+    end
+
+    headers[ CONTENT_LENGTH ] = bytes.size.to_s   ## note: do NOT forget to use to_s (requires string!)
+
+    ## puts "headers (after):"
+    ## pp headers
+
+    halt 200, bytes
+  end # method send_file
+
+
+
 end  ## module Helpers
 
 
@@ -120,6 +171,27 @@ class Base
 
     def routes
       @routes ||= Hash.new { |hash, key| hash[key]=[] }
+    end
+
+
+    ##########################
+    ##  support for "builtin" fallback routes
+    ##
+    ##  e.g. use like
+    ##   fallback_route GET, '/' do
+    ##     "Hello, World!"
+    ##   end
+    def fallback_route( method, pattern, &block )
+      puts "[debug] Webservice::Base.#{method.downcase} - add (fallback) route #{method} '#{pattern}' to #<#{self.name}:#{self.object_id}> : #{self.class.name}"
+
+      ## note: for now use the sintatra-style patterns (with mustermann)
+      fallback_routes[method] << [Mustermann::Sinatra.new(pattern), block]
+    end
+
+    def fallback_routes
+      ## note: !!! use @@ NOT just @ e.g.
+      ##   routes get shared/used by all classes/subclasses
+      @@fallback_routes ||= Hash.new { |hash, key| hash[key]=[] }
     end
 
 
@@ -187,7 +259,10 @@ class Base
 private
 
   def route_eval
+    puts "  [#{self.class.name}] try matching route >#{request.request_method} #{request.path_info}<..."
+
     catch(:halt) do
+      ## pass 1
       routes = self.class.routes[ request.request_method ]
       routes.each do |pattern, block|
         ## puts "trying matching route >#{request.path_info}<..."
@@ -202,6 +277,19 @@ private
           return
         end
       end
+      ## pass 2 - (builtin) fallbacks
+      routes = self.class.fallback_routes[ request.request_method ]
+      routes.each do |pattern, block|
+        url_params = pattern.params( request.path_info )
+        if url_params   ## note: params returns nil if no match
+          if !url_params.empty?   ## url_params hash NOT empty (e.g. {}) merge with req params
+            @params = url_params.merge( @params )
+          end
+          handle_response( instance_eval( &block ))
+          return
+        end
+      end
+
       # no match found for route/request
       halt 404
     end
@@ -360,6 +448,80 @@ private
     else
       obj   ## just try/use as is
     end
+  end
+
+
+  ##################################
+  ### add some fallback (builtin) routes
+
+  fallback_route GET, '/favicon.ico' do
+    ## use 302 to redirect
+    ##  note: use strg+F5 to refresh page (clear cache for favicon.ico)
+    redirect_to '/webservice-32x32.png'
+  end
+
+  fallback_route GET, '/webservice-32x32.png' do
+    send_file "#{Webservice.root}/assets/webservice-32x32.png"
+  end
+
+  fallback_route GET, '/routes' do
+    msg =<<TXT
+#{dump_routes}
+
+#{dump_version}
+TXT
+end
+
+  ## catch all (404 not found)
+  fallback_route GET, '/*' do
+    pp env
+    pp self.class.routes
+
+    msg =<<TXT
+  404 Not Found
+
+  No route matched >#{request.request_method} #{request.path_info}<:
+
+    REQUEST_METHOD: >#{request.request_method}<
+    PATH_INFO:      >#{request.path_info}<
+    QUERY_STRING:   >#{request.query_string}<
+
+    SCRIPT_NAME:    >#{request.script_name}<
+    REQUEST_URI:    >#{env['REQUEST_URI']}<
+
+
+#{dump_routes}
+
+#{dump_version}
+TXT
+
+    halt 404, msg
+  end
+
+############################
+## fallback helpers
+
+  def dump_routes    ## todo/check - rename to build_routes/show_routes/etc. - why? why not?
+    buf = ""
+    buf <<"  Routes >#{self.class.name}<:\n\n"
+
+    self.class.routes.each do |method,routes|
+      buf << "    #{method}:\n"
+      routes.each do |pattern,block|
+        buf << "      #{pattern.to_s}\n"
+      end
+    end
+    buf
+  end
+
+  def dump_version
+    ## single line version string
+    buf = "  "   # note: start with two leading spaces (indent)
+    buf << "webservice/#{VERSION} "
+    buf << "(#{self.class.environment}), "
+    buf << "rack/#{Rack::RELEASE} (#{Rack::VERSION.join('.')}) - "
+    buf << "ruby/#{RUBY_VERSION} (#{RUBY_RELEASE_DATE}/#{RUBY_PLATFORM})"
+    buf
   end
 
 end # class Base

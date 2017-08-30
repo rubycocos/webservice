@@ -40,19 +40,17 @@ class ResponseHandler
 
       data = as_tabular( obj )
 
-      ## note: array required!!!
-      #   array   => multiple records (array of hashes)
-      if data.is_a?( Tabular )
+      if data.is_a? Tabular
         if format == 'csv'  || format == 'txt'
            content_type :txt   ## use csv content type - why? why not??
-           response.body = [generate_csv( data )]
+           response.body = [data.to_csv]
         else
-          ## asume html
+          ## assume html
           content_type :html
-          response.body = [generate_html_table( data )]
+          response.body = [data.to_html_table]
         end
       else
-        ## wrong format (expect array of hashes)
+        ## wrong format (expected Tabular from as_tabular - cannot convert)
         ##   todo: issue warning/notice about wrong format - how?
         ##   use different http status code - why? why not??
         content_type :txt
@@ -60,7 +58,7 @@ class ResponseHandler
         ## for now return as is (convert to string with to_s or inspect)
         response.body = [data.is_a?( String ) ? data.to_s : data.inspect]
       end
-    else
+    else    ## default/assume json
       data = as_json( obj )
 
       ## note: hash or array required!!! for now for json generation
@@ -94,45 +92,8 @@ class ResponseHandler
   end  # method handle_response
 
 
-
-  def generate_csv( tabular )
-    ## :col_sep => "\t"
-    ## :col_sep => ";"
-
-    ## todo: use rec.key for headers/first row
-
-    pp tabular
-
-    CSV.generate do |csv|
-      tabular.rows.each do |row|
-        csv << row
-      end
-    end
-  end
-
-
-  def generate_html_table( tabular )
-
-    pp tabular
-
-    buf = ""
-    buf << "<table>\n"
-    tabular.rows.each do |row|
-      buf << "  <tr>"
-      row.each do |value|
-        buf << "<td>#{value}</td>"
-      end
-      buf << "</tr>\n"
-    end
-    buf << "</table>\n"
-    buf
-  end
-
-
   ##########################################
   ## auto-generate/convert "magic"
-
-  Tabular = Struct.new( :headers, :rows )
 
   def as_tabular( obj, opts={} )
      headers = []
@@ -147,7 +108,6 @@ class ResponseHandler
      else
        ## return as is; cannot convert
        ##   todo/fix: handle cannot convert different (e.g. except etc.) - why? why not??
-       puts "sorry; can't convert - to_a method required"
        puts "!!!! [as_tabular] sorry; can't convert <#{obj.class.name}> - Array or to_a method required"
        return obj
      end
@@ -206,35 +166,14 @@ class ResponseHandler
          end
        end  # recs.each
 
-
-=begin
-  ## check csv
-  ##   use same "datamodel" - why? why not??
-
-     if errors.empty?
-       {
-         headers: headers,
-         rows:    rows
-       }
-     else   ## return row of errors
-       {
-         headers: ['errors'],
-         rows:    errors
-       }
-     end
-=end
-
-if errors.empty?
-  ## [ headers, rows ]     # headers => data[0], rows => data[1]
-  Tabular.new( headers, rows )
-else   ## return row of errors
-  ## [ ['errors'], errors ]   # single-column table with list of error recods
-  Tabular.new( ['errors'], errors )
-end
+    if errors.empty?
+      Tabular.new( headers, rows )
+    else   ## return row of errors
+      ##  return errors as a (simple) multi-line string - why? why not??
+      errors.join( "\n" )
+    end
 
   end   # method as_tabular
-
-
 
 
   def as_json( obj, opts={} )
@@ -248,6 +187,62 @@ end
       obj   ## just try/use as is
     end
   end
+
+
+######
+#  Tabular helper/support class
+
+  class Tabular
+
+    attr_reader :headers
+    attr_reader :rows
+
+    def initialize( headers, rows )
+      @headers = headers
+      @rows    = rows
+    end
+
+    def to_csv( opts={} )
+       ## allow changing of column/value separator (col_sep) - why? why not?
+       ##   :col_sep => "\t"
+       ##   :col_sep => ";"
+
+       pp self
+
+       CSV.generate( headers: true ) do |csv|
+        csv << headers
+        rows.each do |row|
+          csv << row
+        end
+      end
+    end # method to_csv
+
+
+    def to_html_table( opts={} )
+
+      ## todo/fix: html escape values - why? why not??
+
+      pp self
+
+      buf = ""
+      buf << "<table>\n"
+      buf << "  <tr>"
+      headers.each do |header|
+        buf << "<th>#{header}</th>"
+      end
+      buf << "</tr>\n"
+
+      rows.each do |row|
+        buf << "  <tr>"
+        row.each do |value|
+          buf << "<td>#{value}</td>"
+        end
+        buf << "</tr>\n"
+      end
+      buf << "</table>\n"
+      buf
+    end # method to_html_table
+  end # class Tabular
 
 end  # class ResponseHandler
 end # module Webservice

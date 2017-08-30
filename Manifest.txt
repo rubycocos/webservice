@@ -2,8 +2,10 @@ HISTORY.md
 Manifest.txt
 README.md
 Rakefile
+assets/webservice-32x32.png
 lib/webservice.rb
 lib/webservice/base.rb
+lib/webservice/response_handler.rb
 lib/webservice/version.rb
 test/helper.rb
 test/service/app.rb

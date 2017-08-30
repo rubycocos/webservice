@@ -72,6 +72,7 @@ class TestApp < MiniTest::Test
     get '/countries.csv'
     assert last_response.ok?
     assert_equal <<CSV, last_response.body
+key,name
 at,Austria
 mx,Mexico
 CSV
@@ -80,32 +81,25 @@ CSV
     assert last_response.ok?
     assert_equal <<HTML, last_response.body
 <table>
+  <tr><th>key</th><th>name</th></tr>
   <tr><td>at</td><td>Austria</td></tr>
   <tr><td>mx</td><td>Mexico</td></tr>
 </table>
 HTML
 
 
-countries_json = <<JSON.strip
-[
-  {
-    "key": "at",
-    "name": "Austria"
-  },
-  {
-    "key": "mx",
-    "name": "Mexico"
-  }
-]
-JSON
+  countries_json = [
+    { 'key' => 'at', 'name' => 'Austria' },
+    { 'key' => 'mx', 'name' => 'Mexico'  },
+  ]
 
    get '/countries.json'
    assert last_response.ok?
-   assert_equal countries_json, last_response.body
+   assert_equal countries_json, JSON.parse( last_response.body )
 
    get '/countries'
    assert last_response.ok?
-   assert_equal countries_json, last_response.body
+   assert_equal countries_json, JSON.parse( last_response.body )
   end  # method test_countries
 
 

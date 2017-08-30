@@ -355,7 +355,7 @@ TXT
 
   def dump_routes    ## todo/check - rename to build_routes/show_routes/etc. - why? why not?
     buf = ""
-    buf <<"  Routes >#{self.class.name}<:\n\n"
+    buf << "  Routes >#{self.class.name}<:\n\n"
 
     self.class.routes.each do |method,routes|
       buf << "    #{method}:\n"

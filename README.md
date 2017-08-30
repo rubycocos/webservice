@@ -134,7 +134,7 @@ get '/beer/(r|rnd|rand|random)' do    # special keys for random beer
 end
 
 get '/beer/:key'
-  Beer.find_by! key: params[:key]
+  Beer.find_by! key: params['key']
 end
 
 get '/brewery/(r|rnd|rand|random)' do    # special keys for random brewery
@@ -142,12 +142,32 @@ get '/brewery/(r|rnd|rand|random)' do    # special keys for random brewery
 end
 
 get '/brewery/:key'
-  Brewery.find_by! key: params[:key]
+  Brewery.find_by! key: params['key']
 end
+
+...
 ```
+
 
 [**`worlddb / world.db.service`**](https://github.com/worlddb/world.db.service) -
 world.db HTTP JSON API (web service) scripts
+
+```ruby
+get '/countries(.:format)?' do
+  Country.by_key.all    # sort/order by key
+end
+
+get '/cities(.:format)?' do
+  City.by_key.all       # sort/order by key
+end
+
+get '/tag/:slug(.:format)?' do   # e.g. /tag/north_america.csv
+  Tag.find_by!( slug: params['slug'] ).countries
+end
+
+...
+```
+
 
 [**`sportdb / sport.db.service`**](https://github.com/sportdb/sport.db.service) -
 sport.db (football.db) HTTP JSON API (web service) scripts

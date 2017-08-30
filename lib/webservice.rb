@@ -24,6 +24,8 @@ require 'rack'
 require 'webservice/version'   # note: let version always go first
 require 'webservice/base'
 
+require 'webservice/response_handler'     ## default (built-in) response handler (magic)
+
 
 
 module Webservice

@@ -224,6 +224,9 @@ class Base
   attr_reader :params
   attr_reader :env
 
+  attr_reader :handler   # default response_handler/respond_with handler magic
+
+
   def call( env )
     dup.call!( env )
   end
@@ -236,7 +239,9 @@ class Base
     @params    = request.params
     @env       = env
 
+    @handler   = ResponseHandler.new( self )    ## for now "hard-coded"; make it a setting later - why? why not?
 
+    ### move cors headers to responseHandler to initialize!!!! - why? why not??
     ## (auto-)add (merge in) cors headers
     ##   todo: move into a before filter ??  lets you overwrite headers - needed - why? why not??
     headers 'Access-Control-Allow-Origin'  => '*',
@@ -273,10 +278,11 @@ private
             ## todo/fix: check merge order - params overwrites url_params - why? why not??
             @params = url_params.merge( @params )
           end
-          handle_response( instance_eval( &block ))
+          handler.handle_response( instance_eval( &block ))
           return
         end
       end
+
       ## pass 2 - (builtin) fallbacks
       routes = self.class.fallback_routes[ request.request_method ]
       routes.each do |pattern, block|
@@ -285,7 +291,7 @@ private
           if !url_params.empty?   ## url_params hash NOT empty (e.g. {}) merge with req params
             @params = url_params.merge( @params )
           end
-          handle_response( instance_eval( &block ))
+          handler.handle_response( instance_eval( &block ))
           return
         end
       end
@@ -297,174 +303,20 @@ private
 
 
 
-  ## todo: add as_json like opts={}  why? why not?
-  def handle_response( obj, opts={} )
-    puts "[Webservice::Base#handle_response (#{request.path_info}) params: #{params.inspect}] - obj : #{obj.class.name}"
-    pp obj
-
-    ## "magic" param format; default to json
-    format = params['format'] || 'json'
-
-    ## note: response.body must be (expects) an array!!!
-    ##   thus, [json] etc.
-
-    if format == 'csv'  || format == 'txt' ||
-       format == 'html' || format == 'htm'
-
-      data = as_tabular( obj )
-
-      ## note: array required!!!
-      #   array   => multiple records (array of hashes)
-      if data.is_a?( Array )
-        if format == 'csv'  || format == 'txt'
-           content_type :txt   ## use csv content type - why? why not??
-           response.body = [generate_csv( data )]
-        else
-          ## asume html
-          content_type :html
-          response.body = [generate_html_table( data )]
-        end
-      else
-        ## wrong format (expect array of hashes)
-        ##   todo: issue warning/notice about wrong format - how?
-        ##   use different http status code - why? why not??
-        content_type :txt
-        ##  todo/check: use just data.to_s  for all - why? why not?
-        ## for now return as is (convert to string with to_s or inspect)
-        response.body = [data.is_a?( String ) ? data.to_s : data.inspect]
-      end
-    else
-      data = as_json( obj )
-
-      ## note: hash or array required!!! for now for json generation
-      #   hash   => single record
-      #   array  => multiple records (that is, array of hashes)
-
-      if data.is_a?( Hash ) || data.is_a?( Array )
-        json = JSON.pretty_generate( data )   ## use pretty printer
-
-        callback = params.delete( 'callback' )
-
-        if callback
-          content_type :js
-          response.body = ["#{callback}(#{json})"]
-        else
-          content_type :json
-          response.body = [json]
-        end
-      else
-         ## todo/fix/check: change http status to unprocessable entity
-         ##   or something --  why ??? why not??
-         ##
-         ##  allow "standalone" number, nils, strings - why? why not?
-         ##   for now valid json must be wrapped in array [] or hash {}
-         content_type :txt
-         ##  todo/check: use just data.to_s  for all - why? why not?
-         ## for now return as is (convert to string with to_s or inspect)
-         response.body = [data.is_a?( String ) ? data.to_s : data.inspect]
-      end
-    end
-  end  # method handle_response
-
-
-
-  def generate_csv( recs )
-    ## note: for now assumes (only works with) array of hash records e.g.:
-    ## [
-    ##     { key: 'at', name: 'Austria', ...},
-    ##     { key: 'mx', name: 'Mexico', ...},
-    ##     ...
-    ## ]
-
-    ## :col_sep => "\t"
-    ## :col_sep => ";"
-
-    ## todo: use rec.key for headers/first row
-
-    ## pp recs
-
-    CSV.generate do |csv|
-      recs.each do |rec|
-        csv << rec.values
-      end
-    end
-  end
-
-
-  def generate_html_table( recs )
-    ## note: for now assumes (only works with) array of hash records e.g.:
-    ## [
-    ##     { key: 'at', name: 'Austria', ...},
-    ##     { key: 'mx', name: 'Mexico', ...},
-    ##     ...
-    ## ]
-
-    ## pp recs
-
-    buf = ""
-    buf << "<table>\n"
-    recs.each do |rec|
-      buf << "  <tr>"
-      rec.values.each do |value|
-        buf << "<td>#{value}</td>"
-      end
-      buf << "</tr>\n"
-    end
-    buf << "</table>\n"
-    buf
-  end
-
-
-  ##########################################
-  ## auto-generate/convert "magic"
-
-  def as_tabular( obj, opts={} )
-    ##  for now allow
-    ##    as_tab, as_tabular  - others too? e.g. as_table why? why not?
-    ##   like as_json will return a hash or array of hashes NOT a string!!!!
-
-    if obj.respond_to? :as_tab
-      obj.as_tab
-    elsif obj.respond_to? :as_tabular
-      obj.as_tabular
-    else
-      ## note: use as_json will return hash (for record) or array of hashes (for records)
-      if obj.respond_to? :as_json
-        obj.as_json
-      else
-        obj   ## just try/use as is (assumes array of hashesd)
-      end
-    end
-  end
-
-
-  def as_json( obj, opts={} )
-    if obj.respond_to? :as_json_v3     ## try (our own) serializer first
-      obj.as_json_v3
-    elsif obj.respond_to? :as_json_v2     ## try (our own) serializer first
-      obj.as_json_v2
-    elsif obj.respond_to? :as_json     ## try (activerecord) serializer
-      obj.as_json
-    else
-      obj   ## just try/use as is
-    end
-  end
-
-
   ##################################
   ### add some fallback (builtin) routes
 
-  fallback_route GET, '/favicon.ico' do
-    ## use 302 to redirect
-    ##  note: use strg+F5 to refresh page (clear cache for favicon.ico)
-    redirect_to '/webservice-32x32.png'
-  end
+    fallback_route GET, '/favicon.ico' do
+      ## use 302 to redirect
+      ##  note: use strg+F5 to refresh page (clear cache for favicon.ico)
+      redirect_to '/webservice-32x32.png'
+    end
 
-  fallback_route GET, '/webservice-32x32.png' do
-    send_file "#{Webservice.root}/assets/webservice-32x32.png"
-  end
+    fallback_route GET, '/webservice-32x32.png' do
+      send_file "#{Webservice.root}/assets/webservice-32x32.png"
+    end
 
-  fallback_route GET, '/routes' do
+    fallback_route GET, '/routes' do
     msg =<<TXT
 #{dump_routes}
 

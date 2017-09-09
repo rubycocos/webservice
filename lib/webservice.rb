@@ -22,7 +22,9 @@ require 'rack'
 
 # our own code
 require 'webservice/version'   # note: let version always go first
+require 'webservice/metal'
 require 'webservice/base'
+
 
 require 'webservice/response_handler'     ## default (built-in) response handler (magic)
 

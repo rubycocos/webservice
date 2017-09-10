@@ -45,7 +45,7 @@ module Helpers
       ##
       ## todo/fix: add/prepepand SCRIPT_NAME if NOT empty - why? why not??
       ##    without SCRIPT_NAME redirect will not work with (non-root) mounted apps
-      
+
       halt status, { LOCATION => uri }
     end
     alias_method :redirect_to, :redirect
@@ -217,11 +217,10 @@ class Metal    ## bare bones core (use base for more built-in functionality)
     @params    = request.params
     @env       = env
 
-
-    ## call before if defined in derived (sub)classes
-    before  if respond_to? :before
-
     catch(:halt) do
+      ## call before if defined in derived (sub)classes
+      before  if respond_to? :before
+
       route!
     end
 

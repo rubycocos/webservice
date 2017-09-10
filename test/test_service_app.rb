@@ -2,13 +2,13 @@
 
 ###
 #  to run use
-#     ruby -I ./lib -I ./test test/test_app.rb
+#     ruby -I ./lib -I ./test test/test_service_app.rb
 
 
 require 'helper'
 
 
-class TestApp < MiniTest::Test
+class TestServiceApp < MiniTest::Test
 
   include Rack::Test::Methods
 
@@ -17,7 +17,7 @@ class TestApp < MiniTest::Test
     @@app ||= begin
       app_class = Webservice.load_file( "#{Webservice.root}/test/service/app.rb" )
       pp app_class.routes
-      app_class.new
+      app_class
     end
   end
 
@@ -113,4 +113,4 @@ HTML
     assert_equal "Error fatal", last_response.body
   end
 
-end # class TestApp
+end # class TestServiceApp

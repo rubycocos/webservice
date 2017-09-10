@@ -9,7 +9,7 @@
 require 'webservice'
 
 
-App = Webservice.load_file( "#{Webservice.root}/samples/debug.rb" )
+App = Webservice.load_file( "#{Webservice.root}/test/service/debug.rb" )
 
 
 #############

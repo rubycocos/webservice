@@ -12,12 +12,16 @@ class TestMustermann < MiniTest::Test
 
   def test_hello
 
-    pp Rack::VERSION
+    pp Rack::VERSION            #  e.g. [1,2]
+    pp Rack::VERSION.join('.')  #   e.g. 1.2
+    pp Rack::RELEASE
     pp Mustermann::VERSION
+
 
     pattern = Mustermann::Sinatra.new( '/:name' )
     pp pattern
     pp pattern.names
+    pp pattern.to_s    # prints passed in pattern (as "plain" string as is)
 
     m = pattern.match( "/test" )
     pp m

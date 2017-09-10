@@ -3,19 +3,6 @@
 ## Todos
 
 
-### as_tab on City.all queries
-
-
-check if respond_to? :as_tab if not?
- - check if record object respons_to? :as_tab?  possible?
- - if yes use as_tab if content_type is csv/html otherwise use as_json_v3 etc.
-
-
-
-### Add Header Row to CSV / Table Headers to HTML
-
-Use rec.key for headers/first row for csv/html - why? why not??
-
 
 ### Content-Type
 
@@ -77,6 +64,6 @@ why? why not??
 
 ### call.dup
 
-sinatra 2.0 uses a mutex with synchonize on call
+sinatra 2.0 uses a mutex with synchonize on Base.call - add it too? why? why not?
 
-is call.dup still recommend
+is Base#call.dup still recommended (good enough)

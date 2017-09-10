@@ -1,27 +1,30 @@
 # encoding: utf-8
 
-###
-## todo/fix:  move to folder base/base
-
-
 
 module Webservice
 
 class Base < Metal
 
-  class << self
 
-    ## convenience method
-    def run!
-      puts "[debug] Webservice::Base.run! - self = #<#{self.name}:#{self.object_id}> : #{self.class.name}"  # note: assumes self is class
-      app    = self     ## note: use self; will be derived class (e.g. App and not Base)
-      port   = 4567
-      Rack::Handler::WEBrick.run( app, Port:port ) do |server|
-        ## todo: add traps here - why, why not??
-      end
-    end
-  end  ## class << self
+  ## note: before (filter) for now is just a method (NOT a chain for blocks, etc.);
+  ##   override method to change before (filter)
+  def before
+     ### move cors headers to responseHandler to initialize!!!! - why? why not??
+     ## (auto-)add (merge in) cors headers
+     ##   todo: move into a before filter ??  lets you overwrite headers - needed - why? why not??
+     headers 'Access-Control-Allow-Origin'  => '*',
+             'Access-Control-Allow-Headers' => 'Authorization,Accepts,Content-Type,X-CSRF-Token,X-Requested-With',
+             'Access-Control-Allow-Methods' => 'GET,POST,PUT,DELETE,OPTIONS'
+  end
 
+
+  # note: for now use "plugable" response handler
+  ##   rename to respond_with or something? why? why not??
+  ##    make it a "stateless" function e.g. just retrun tripled [status, headers, body] - why? why not??
+  def handle_response( obj, opts={} )
+    handler   = ResponseHandler.new( self )    ## for now "hard-coded"; make it a setting later - why? why not?
+    handler.handle_response( obj )   ## prepare response
+  end
 
 
   ##################################
@@ -60,7 +63,7 @@ end
     QUERY_STRING:   >#{request.query_string}<
 
     SCRIPT_NAME:    >#{request.script_name}<
-    REQUEST_URI:    >#{env['REQUEST_URI']}<    ## fix: use request.url - available, same, string ???
+    REQUEST_URI:    >#{request.url}<
 
 
 #{dump_routes}
@@ -71,25 +74,33 @@ TXT
     halt 404, msg
   end
 
+
 ############################
 ## fallback helpers
 
   def dump_routes    ## todo/check - rename to build_routes/show_routes/etc. - why? why not?
-
-   ### fix: make dump routes recursive!!!!!
-   ##    returns all routes from subclasses to class.respond_to? :routes
-
     buf = ""
-    buf << "  Routes >#{self.class.name}<:\n\n"
+    walk_routes_for( buf, self.class )
+    buf
+  end
 
-    self.class.routes.each do |method,routes|
+  def walk_routes_for( buf, base=self.class )
+
+    buf << "  Routes >#{base.name}<:\n\n"
+
+    base.routes.each do |method,routes|
       buf << "    #{method}:\n"
       routes.each do |pattern,block|
         buf << "      #{pattern.to_s}\n"
       end
     end
-    buf
+
+    if base.superclass.respond_to? :routes
+      buf << "\n\n"
+      walk_routes_for( buf, base.superclass )
+    end
   end
+
 
   def dump_version
     ## single line version string

@@ -40,10 +40,15 @@ module Helpers
     end
 
 
-    def redirect_to( uri, status=302 )    ## Note: 302 == Found, 301 == Moved Permanently
+    def redirect( uri, status=302 )    ## Note: 302 == Found, 301 == Moved Permanently
+
+      ##
+      ## todo/fix: add/prepepand SCRIPT_NAME if NOT empty - why? why not??
+      ##    without SCRIPT_NAME redirect will not work with (non-root) mounted apps
+      
       halt status, { LOCATION => uri }
     end
-    alias_method :redirect, :redirect_to
+    alias_method :redirect_to, :redirect
 
 
     # Set multiple response headers with Hash.
@@ -182,6 +187,15 @@ class Metal    ## bare bones core (use base for more built-in functionality)
     def production?()  environment == :production;  end
     def test?()        environment == :test;        end
 
+    ## convenience method
+    def run!
+      puts "[debug] Webservice::Metal.run! - self = #<#{self.name}:#{self.object_id}> : #{self.class.name}"  # note: assumes self is class
+      app    = self     ## note: use self; will be derived class (e.g. App and not Base)
+      port   = 4567
+      Rack::Handler::WEBrick.run( app, Port:port ) do |server|
+        ## todo: add traps here - why, why not??
+      end
+    end
   end  ## class << self
 
 
@@ -189,8 +203,6 @@ class Metal    ## bare bones core (use base for more built-in functionality)
   attr_reader :response
   attr_reader :params
   attr_reader :env
-
-  attr_reader :handler   # default response_handler/respond_with handler magic
 
 
   def call( env )
@@ -205,16 +217,13 @@ class Metal    ## bare bones core (use base for more built-in functionality)
     @params    = request.params
     @env       = env
 
-    @handler   = ResponseHandler.new( self )    ## for now "hard-coded"; make it a setting later - why? why not?
 
-    ### move cors headers to responseHandler to initialize!!!! - why? why not??
-    ## (auto-)add (merge in) cors headers
-    ##   todo: move into a before filter ??  lets you overwrite headers - needed - why? why not??
-    headers 'Access-Control-Allow-Origin'  => '*',
-            'Access-Control-Allow-Headers' => 'Authorization,Accepts,Content-Type,X-CSRF-Token,X-Requested-With',
-            'Access-Control-Allow-Methods' => 'GET,POST,PUT,DELETE,OPTIONS'
+    ## call before if defined in derived (sub)classes
+    before  if respond_to? :before
 
-    route_eval
+    catch(:halt) do
+      route!
+    end
 
     @response.finish
   end
@@ -224,17 +233,35 @@ class Metal    ## bare bones core (use base for more built-in functionality)
     response.status = args.detect{ |arg| arg.is_a?(Fixnum) } || 200
     response.header.merge!( args.detect{ |arg| arg.is_a?(Hash) } || {} )
     response.body = [args.detect{ |arg| arg.is_a?(String) } || '']
-    throw :halt, response
+    throw :halt, response           ## todo/check response arg used - what for??
   end
+
 
 private
 
-  def route_eval
-    puts "  [#{self.class.name}] try matching route >#{request.request_method} #{request.path_info}<..."
+  ## run a route block and throw :halt
+  def route_eval( &block )
+    obj = instance_eval( &block )    ## return result - for now assumes a single object
 
-    catch(:halt) do
-      ## pass 1
-      routes = self.class.routes[ request.request_method ]
+    if respond_to? :handle_response
+      handle_response( obj )    ## prepare response
+    else
+      ## default response; string expected
+      ##   if string pass it along
+      ##   if NOT string for debugging / dump to string with inspect
+      response.status = 200
+      response.body   = [obj.is_a?(String) ? obj.to_s : obj.inspect]
+    end
+
+    throw :halt
+  end
+
+
+  def route!( base=self.class )
+
+    puts "  [#{base.name}] try matching route >#{request.request_method} #{request.path_info}<..."
+
+      routes = base.routes[ request.request_method ]
       routes.each do |pattern, block|
         ## puts "trying matching route >#{request.path_info}<..."
         url_params = pattern.params( request.path_info )
@@ -242,29 +269,27 @@ private
           ## puts "  BINGO! url_params: #{url_params.inspect}"
           if !url_params.empty?   ## url_params hash NOT empty (e.g. {}) merge with req params
             ## todo/fix: check merge order - params overwrites url_params - why? why not??
+
+            ## todo/fix: check params - params works with string keys only - check for indiffent keys - why? why not?
+            ##   check rack params - works with indifferent keys by default??
             @params = url_params.merge( @params )
           end
-          handler.handle_response( instance_eval( &block ))
-          return
+          route_eval( &block )
+          ##  todo/check: keep return - why? why not?  - note: route_eval will always throw :halt
+          ## handler.handle_response( instance_eval( &block ))
+          ## return
         end
       end
 
-      ## pass 2 - (builtin) fallbacks
-      routes = self.class.fallback_routes[ request.request_method ]
-      routes.each do |pattern, block|
-        url_params = pattern.params( request.path_info )
-        if url_params   ## note: params returns nil if no match
-          if !url_params.empty?   ## url_params hash NOT empty (e.g. {}) merge with req params
-            @params = url_params.merge( @params )
-          end
-          handler.handle_response( instance_eval( &block ))
-          return
-        end
+      ## check recursive - all super(parent)classes too (e.g. App > Base > Metal etc.)
+      ##   note: superclass is the parent class (returns nil if no more parent class)
+      if base.superclass.respond_to? :routes
+        route!( base.superclass )
+        return
       end
 
       # no match found for route/request
       halt 404
-    end
   end
 
 

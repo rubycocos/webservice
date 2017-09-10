@@ -4,8 +4,8 @@ module Webservice
 
    module Version
      MAJOR = 0    ## todo: namespace inside version or something - why? why not??
-     MINOR = 6
-     PATCH = 1    ## note: if not put in module will overwrite PATCH (HTTP Verb Constant)!!!
+     MINOR = 7
+     PATCH = 0    ## note: if not put in module will overwrite PATCH (HTTP Verb Constant)!!!
    end
 
    VERSION = [Version::MAJOR,

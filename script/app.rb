@@ -11,7 +11,7 @@ require 'webservice'
 
 class MiniApp < Webservice::Base
   get('/') { "Hello from MiniApp" }
-  get('/:something') { params['something'] }
+  get('/test/:something') { params['something'] }
 end
 
 
